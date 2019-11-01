@@ -11,7 +11,6 @@ class RTDSClient {
     this.url = url;
     this.socket = socketIOClient(url);
     this.listeners = {};
-    this.on('welcome', (data) => this.onWelcome(data));
     this.on('failure', (data) => this.onFailure(data));
   }
 
@@ -32,15 +31,6 @@ class RTDSClient {
   }
 
   /**
-   * Store the token and user.
-   * @param {Object} data
-   */
-  onWelcome(data) {
-    localStorage.setItem('user', JSON.stringify(data.user));
-    localStorage.setItem('token', data.token);
-  }
-
-  /**
    * Error handler hook.
    * @param {Object} data
    */
@@ -48,7 +38,6 @@ class RTDSClient {
     if (data.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      console.log('TODO: Redirect to login using hook or something.');
     }
     console.error(data);
   }
@@ -90,6 +79,42 @@ class RTDSClient {
    */
   unlisten(type, callback) {
     this.listeners[type] = this.listeners[type].filter(cb => cb !== callback);
+  }
+
+  /**
+   * Check if the user is logged in.
+   */
+  isLoggedIn() {
+    return !localStorage.getItem('token');
+  }
+
+  /**
+   * Try login.
+   * @param {Object}
+   * @returns {Promise}
+   */
+  async login({user, password}) {
+    // TODO: Extract this useful pattern that can be used elsewhere.
+    return new Promise((resolve, reject) => {
+      const success = (data) => {
+        this.unlisten('login-failed', fail);
+        this.unlisten('login-successful', success);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
+        resolve(data);
+      }
+      const fail = (err) => {
+        this.unlisten('login-failed', fail);
+        this.unlisten('login-successful', success);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        reject(new Error(err.message));
+      }
+
+      this.listen('login-failed', fail);
+      this.listen('login-successful', success);
+      this.send('login', {user, password});
+    });
   }
 }
 
