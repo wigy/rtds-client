@@ -16,10 +16,7 @@ function useDataSync(channel, filter, callback = null) {
     msg = { channel, filter };
   }
   useEffect(() => {
-    client.listen(channel, (data) => {
-      console.log('Got', data);
-      callback(data);
-    });
+    client.listen(channel, callback);
     client.send('subscribe', msg);
     return () => {
       client.send('unsubscribe', msg);
