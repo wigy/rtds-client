@@ -7,7 +7,7 @@ import client from './client';
  * @param {Object} filter
  * @param {Function} callback
  */
-function useDataSync(channel, filter, callback = null) {
+function useDataRead(channel, filter, callback = null) {
   let msg;
   if (callback === null) {
     callback = filter;
@@ -41,8 +41,18 @@ function useDataCreation() {
   };
 }
 
+/**
+ * Return a function for updating existing objects on the server.
+ */
+function useDataUpdate() {
+  return (data) => {
+    client.send('update-objects', data);
+  };
+}
+
 export {
   useDataCreation,
-  useDataSync,
+  useDataRead,
+  useDataUpdate,
   useLoginStatus
 };

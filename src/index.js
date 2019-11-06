@@ -1,6 +1,6 @@
 import RTDSClient from './rtds-client';
 import client from './client';
-import { useDataCreation, useDataSync, useLoginStatus } from  './hooks';
+import { useDataCreation, useDataUpdate, useDataRead, useLoginStatus } from  './hooks';
 
-export { client, RTDSClient, useDataCreation, useDataSync, useLoginStatus };
+export { client, RTDSClient, useDataCreation, useDataUpdate, useDataRead, useLoginStatus };
 export default RTDSClient;
