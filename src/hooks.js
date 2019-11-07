@@ -50,9 +50,19 @@ function useDataUpdate() {
   };
 }
 
+/**
+ * Return a function for deleting existing objects from the server.
+ */
+function useDataDelete() {
+  return (data) => {
+    client.send('delete-objects', data);
+  };
+}
+
 export {
   useDataCreation,
   useDataRead,
   useDataUpdate,
+  useDataDelete,
   useLoginStatus
 };
