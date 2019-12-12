@@ -17,9 +17,9 @@ function useDataRead(channel, filter, callback = null) {
   }
   useEffect(() => {
     client.listen(channel, callback);
-    client.send('subscribe', msg);
+    client.send('subscribe-channel', msg);
     return () => {
-      client.send('unsubscribe', msg);
+      client.send('unsubscribe-channel', msg);
       client.unlisten(channel, callback);
     }
   }, []);
