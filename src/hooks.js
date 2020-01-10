@@ -4,7 +4,7 @@ import client from './client';
 /**
  * Start listening changes in the given data channel.
  * @param {String} channel
- * @param {Object} filter
+ * @param {Object} [filter]
  * @param {Function} callback
  */
 function useDataRead(channel, filter, callback = null) {

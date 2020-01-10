@@ -1,4 +1,6 @@
 import socketIOClient from 'socket.io-client';
+import deepEqual from 'deep-equal';
+import clone from 'clone';
 
 // If set to true, show all received messages.
 const SOCKET_DEBUGGING = false;
@@ -11,7 +13,9 @@ class RTDSClient {
     this.url = url;
     this.socket = socketIOClient(url);
     this.listeners = {};
+    this.on('reconnect', () => this.onReconnect());
     this.on('failure', (data) => this.onFailure(data));
+    this.subscriptions = [];
   }
 
   /**
@@ -24,7 +28,7 @@ class RTDSClient {
     }
     this.socket.on(type, (data) => {
       if (SOCKET_DEBUGGING) {
-        console.log('Socket:', type, data);
+        console.log('Socket received:', type, data);
       }
       callback(data);
     });
@@ -43,12 +47,65 @@ class RTDSClient {
   }
 
   /**
+   * Subscribe back to all subscriptions.
+   */
+  onReconnect() {
+    this.subscriptions.forEach(s => {
+      this.send('subscribe-channel', s);
+    });
+  }
+
+  /**
+   * Find the index of the subscription if it exist, -1 otherwise.
+   * @param {String} param0.filter
+   * @param {String} param0.channel
+   */
+  indexOf({filter, channel}) {
+    return this.subscriptions.findIndex(s => deepEqual(s, {filter, channel}));
+  }
+
+  /**
+   * Mark subscription to the channel.
+   * @param {String} param0.filter
+   * @param {String} param0.channel
+   */
+  subscribe({filter, channel}) {
+    // TODO: Fix double subscription. Where `token` comes from into subscription object?
+    if (this.indexOf({filter, channel}) < 0) {
+      this.subscriptions.push(clone({filter, channel}));
+      if (SOCKET_DEBUGGING) {
+        console.log('Subscribe:', channel, filter || null);
+      }
+    }
+  }
+
+  /**
+   * Mark un-subscription from the channel.
+   * @param {String} param0.filter
+   * @param {String} param0.channel
+   */
+  unsubscribe({filter, channel}) {
+    const idx = this.indexOf({filter, channel});
+    if (idx >= 0) {
+      this.subscriptions = this.subscriptions.splice(idx, 1);
+      if (SOCKET_DEBUGGING) {
+        console.log('Unubscribe:', channel, filter || null);
+      }
+    }
+  }
+
+  /**
    * Send a message to the socket server.
    * @param {String} type
    * @param {Object} data
    */
   send(type, data) {
     data = data || {};
+    if (type === 'subscribe-channel') {
+      this.subscribe(data);
+    } else if (type === 'unsubscribe-channel') {
+      this.unsubscribe(data);
+    }
     const token = localStorage.getItem('token');
     if (token) {
       data.token = token;
