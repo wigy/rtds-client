@@ -9,13 +9,47 @@ const SOCKET_DEBUGGING = false;
  * Socket communication handler.
  */
 class RTDSClient {
-  constructor(url) {
+  constructor(url = null) {
     this.url = url;
-    this.socket = socketIOClient(url);
+    if (url !== null) {
+      this.init();
+    }
+  }
+
+  /**
+   * Initialize socket and handlers.
+   */
+  init() {
+    this.socket = socketIOClient(this.url);
     this.listeners = {};
     this.on('reconnect', () => this.onReconnect());
     this.on('failure', (data) => this.onFailure(data));
     this.subscriptions = [];
+  }
+
+  /**
+   * Check if client has been initialized and throw an error if not.
+   */
+  checkInit() {
+    if (this.url === null) {
+      throw new Error('Cannot use RTDS client before it has been configured.');
+    }
+  }
+
+  /**
+   * Configure the client.
+   * @param {Number} [param0.port]
+   * @param {String} [param0.url]
+   */
+  configure({ port, url }) {
+    if (url) {
+      this.url = url;
+    } else {
+      const loc = document.location;
+      const url = `${loc.protocol}//${loc.hostname}:${port}`;
+      this.url = url;
+    }
+    this.init();
   }
 
   /**
@@ -70,7 +104,7 @@ class RTDSClient {
    * @param {String} param0.channel
    */
   subscribe({filter, channel}) {
-    // TODO: Fix double subscription. Where `token` comes from into subscription object?
+    this.checkInit();
     if (this.indexOf({filter, channel}) < 0) {
       this.subscriptions.push(clone({filter, channel}));
       if (SOCKET_DEBUGGING) {
@@ -85,6 +119,7 @@ class RTDSClient {
    * @param {String} param0.channel
    */
   unsubscribe({filter, channel}) {
+    this.checkInit();
     const idx = this.indexOf({filter, channel});
     if (idx >= 0) {
       this.subscriptions = this.subscriptions.splice(idx, 1);
@@ -100,6 +135,7 @@ class RTDSClient {
    * @param {Object} data
    */
   send(type, data) {
+    this.checkInit();
     data = data || {};
     if (type === 'subscribe-channel') {
       this.subscribe(data);
@@ -119,6 +155,7 @@ class RTDSClient {
    * @param {Function} callback
    */
   listen(type, callback) {
+    this.checkInit();
     if (!this.listeners[type]) {
       this.listeners[type] = [callback];
       this.on(type, (data) => {
@@ -135,6 +172,7 @@ class RTDSClient {
    * @param {Function} callback
    */
   unlisten(type, callback) {
+    this.checkInit();
     this.listeners[type] = this.listeners[type].filter(cb => cb !== callback);
   }
 
@@ -146,31 +184,57 @@ class RTDSClient {
   }
 
   /**
+   * Helper to send a message and then response either successfully or failing.
+   * @param {String} param0.channel
+   * @param {Object} param0.data
+   * @param {String} param1.successChannel
+   * @param {Function} param1.successCallback
+   * @param {String} param1.failChannel
+   * @param {Function} param1.failCallback
+   * @return {Promise}
+   */
+  async try({channel, data}, {successChannel, successCallback, failChannel, failCallback}) {
+    return new Promise((resolve, reject) => {
+      const success = (data) => {
+        this.unlisten(failChannel, fail);
+        this.unlisten(successChannel, success);
+        successCallback(data);
+        resolve(data);
+      }
+      const fail = (err) => {
+        this.unlisten(failChannel, fail);
+        this.unlisten(successChannel, success);
+        failCallback(err);
+        reject(new Error(err.message));
+      }
+
+      this.listen(failChannel, fail);
+      this.listen(successChannel, success);
+      this.send(channel, data);
+    });
+  }
+
+  /**
    * Try login.
    * @param {Object}
    * @returns {Promise}
    */
   async login({user, password}) {
-    // TODO: Extract this useful pattern that can be used elsewhere.
-    return new Promise((resolve, reject) => {
-      const success = (data) => {
-        this.unlisten('login-failed', fail);
-        this.unlisten('login-successful', success);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('token', data.token);
-        resolve(data);
+    return this.try(
+      {
+        channel: 'login',
+        data: {user, password}
+      }, {
+        successChannel: 'login-successful',
+        successCallback: (data) => {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('token', data.token);
+        },
+        failChannel: 'login-failed',
+        failCallback: (err) => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
       }
-      const fail = (err) => {
-        this.unlisten('login-failed', fail);
-        this.unlisten('login-successful', success);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        reject(new Error(err.message));
-      }
-
-      this.listen('login-failed', fail);
-      this.listen('login-successful', success);
-      this.send('login', {user, password});
     });
   }
 }
