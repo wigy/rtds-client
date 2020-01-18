@@ -106,6 +106,7 @@ class RTDSClient {
   subscribe({filter, channel}) {
     this.checkInit();
     if (this.indexOf({filter, channel}) < 0) {
+      // TODO: This still does multiple subscribes on reconnect.
       this.subscriptions.push(clone({filter, channel}));
       if (SOCKET_DEBUGGING) {
         console.log('Subscribe:', channel, filter || null);
