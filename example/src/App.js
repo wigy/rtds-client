@@ -1,43 +1,75 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Switch, Link, useHistory } from "react-router-dom";
 import { client, useDataRead, useLoginStatus, useDataCreation, useDataUpdate, useDataDelete } from 'rtds-client';
 
+/**
+ * Page for simulating login.
+ */
 function LoginPage() {
-  const history = useHistory();
   return <div>
-    <button onClick={
-      () => client.login({user: 'anything', password: 'pass'})
-            .then(() => history.push('/'))}>
+    <h1>Live Query Example</h1>
+    <button onClick={() => client.login({user: 'anything', password: 'pass'})}>
       Login
     </button>
   </div>;
 }
 
+/**
+ * A component rendering todo with a status toggle.
+ */
+function Todo(props) {
+  // A target todo as a prop.
+  const { todo } = props;
+  // Get hooks for updating or deleting todo.
+  const update = useDataUpdate();
+  const del = useDataDelete();
+
+  return <li>
+    #{todo.id} {todo.title}
+    <input type="checkbox"
+           checked={todo.done}
+           onChange={(e) => update({todos: {id: todo.id, done: e.target.checked ? 1 : 0}})}
+    />
+    <button onClick={() => del({todos: {id: todo.id}})}>Del</button>
+  </li>;
+}
+
+/**
+ * A page listing all todos.
+ */
 function TodosPage() {
+  // Make a state and automatically query all entries from live query server.
   const [todos, setTodos] = useState([]);
   useDataRead('todos', setTodos);
-  console.log(todos);
+
+  // State for editing title and get hook to call entry creation.
+  const [title, setTitle] = useState('');
+  const create = useDataCreation();
+
   return <div>
-    <input /><button>Add</button>
+    <input value={title} onChange={(e) => setTitle(e.target.value)}/>
+    <button onClick={() => create({todos: {title}}) && setTitle('')}>Add</button>
+    <ul>
+      {todos.map(todo => <Todo key={todo.id} todo={todo} />)}
+    </ul>
   </div>;
 }
 
+/**
+ * Simple example application.
+ */
 function App() {
+  // Configure the client setting the port of the live query server.
   client.configure({port: 2999});
+  // If not logged in for socket, show login page.
   const isLoggedIn = useLoginStatus();
+
   if (!isLoggedIn) {
     return LoginPage();
   }
-
   return (
     <div>
-      <Router>
-        <Link to="/">Home</Link>
-        <hr />
-        <Switch>
-          <Route path="/" component={TodosPage} />
-        </Switch>
-      </Router>
+      <h1>Live Query Example</h1>
+      <TodosPage />
     </div>
   );
 }

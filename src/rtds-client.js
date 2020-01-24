@@ -238,6 +238,8 @@ class RTDSClient {
       }
     });
   }
+
+  // TODO: Logout not implemented.
 }
 
 export default RTDSClient;
