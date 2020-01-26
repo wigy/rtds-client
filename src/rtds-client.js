@@ -181,7 +181,7 @@ class RTDSClient {
    * Check if the user is logged in.
    */
   isLoggedIn() {
-    return !localStorage.getItem('token');
+    return !!localStorage.getItem('token');
   }
 
   /**
@@ -221,8 +221,7 @@ class RTDSClient {
    * @returns {Promise}
    */
   async login({user, password}) {
-    return this.try(
-      {
+    return this.try({
         channel: 'login',
         data: {user, password}
       }, {
@@ -239,7 +238,25 @@ class RTDSClient {
     });
   }
 
-  // TODO: Logout not implemented.
+  /**
+   * Log out.
+   */
+  async logout() {
+    if (this.isLoggedIn()) {
+      await this.try({
+        channel: 'logout'
+      }, {
+        successChannel: 'logout-successful',
+        successCallback: () => {
+          for (const sub of this.subscriptions) {
+            this.unsubscribe(sub);
+          }
+          localStorage.removeItem('token');
+          this.listeners = {};
+        }
+      });
+    }
+  }
 }
 
 export default RTDSClient;

@@ -29,7 +29,7 @@ function useDataRead(channel, filter, callback = null) {
  * Check if the user is logged in.
  */
 function useLoginStatus() {
-  return !client.isLoggedIn();
+  return client.isLoggedIn();
 }
 
 /**

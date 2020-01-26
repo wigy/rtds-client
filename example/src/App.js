@@ -7,7 +7,7 @@ import { client, useDataRead, useLoginStatus, useDataCreation, useDataUpdate, us
 function LoginPage() {
   return <div>
     <h1>Live Query Example</h1>
-    <button onClick={() => client.login({user: 'anything', password: 'pass'})}>
+    <button onClick={() => client.login({user: 'anything', password: 'pass'}).then(() => (document.location = '/'))}>
       Login
     </button>
   </div>;
@@ -47,7 +47,7 @@ function TodosPage() {
 
   return <div>
     <input value={title} onChange={(e) => setTitle(e.target.value)}/>
-    <button onClick={() => create({todos: {title}}) && setTitle('')}>Add</button>
+    <button onClick={() => {create({todos: {title}}); setTitle('');}}>Add</button>
     <ul>
       {todos.map(todo => <Todo key={todo.id} todo={todo} />)}
     </ul>
@@ -55,21 +55,23 @@ function TodosPage() {
 }
 
 /**
- * Simple example application.
+ * Simple example application with basic CRUD-operations.
  */
 function App() {
   // Configure the client setting the port of the live query server.
   client.configure({port: 2999});
   // If not logged in for socket, show login page.
   const isLoggedIn = useLoginStatus();
-
   if (!isLoggedIn) {
     return LoginPage();
   }
+  // Otherwise show our main page.
   return (
     <div>
       <h1>Live Query Example</h1>
       <TodosPage />
+      <br/>
+      <button onClick={() => client.logout().then(() => (document.location = '/'))}>Log Out</button>
     </div>
   );
 }
