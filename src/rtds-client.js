@@ -191,10 +191,9 @@ class RTDSClient {
    * @param {String} param1.successChannel
    * @param {Function} param1.successCallback
    * @param {String} param1.failChannel
-   * @param {Function} param1.failCallback
    * @return {Promise}
    */
-  async try({channel, data}, {successChannel, successCallback, failChannel, failCallback}) {
+  async try({channel, data}, {successChannel, successCallback, failChannel}) {
     return new Promise((resolve, reject) => {
       const success = (data) => {
         this.unlisten(failChannel, fail);
@@ -205,7 +204,6 @@ class RTDSClient {
       const fail = (err) => {
         this.unlisten(failChannel, fail);
         this.unlisten(successChannel, success);
-        failCallback(err);
         reject(new Error(err.message));
       }
 
@@ -230,11 +228,12 @@ class RTDSClient {
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.setItem('token', data.token);
         },
-        failChannel: 'login-failed',
-        failCallback: (err) => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-      }
+        failChannel: 'login-failed'
+    })
+    .catch((err) => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw err;
     });
   }
 

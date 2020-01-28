@@ -94,5 +94,6 @@ query.
 There is a simple example that can be used out of the box with the RTDS Server.
 ```
 cd example
+npm install
 npm start
 ```
