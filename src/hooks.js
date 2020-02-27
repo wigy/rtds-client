@@ -22,7 +22,7 @@ function useDataRead(channel, filter, callback = null) {
       client.send('unsubscribe-channel', msg);
       client.unlisten(channel, callback);
     }
-  }, []);
+  }, [JSON.stringify(msg)]);
 }
 
 /**
