@@ -55,6 +55,7 @@ class RTDSClient {
   /**
    * Establish a handler for a message type.
    * @param {String} type
+   * @param {Function} callback
    */
   on(type, callback) {
     if (SOCKET_DEBUGGING) {
@@ -124,7 +125,7 @@ class RTDSClient {
     if (idx >= 0) {
       this.subscriptions = this.subscriptions.splice(idx, 1);
       if (SOCKET_DEBUGGING) {
-        console.log('Unubscribe:', channel, filter || null);
+        console.log('Unsubscribe:', channel, filter || null);
       }
     }
   }
