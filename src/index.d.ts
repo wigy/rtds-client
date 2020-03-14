@@ -22,7 +22,13 @@ declare interface Data {
 
 declare interface ChannelData {
   channel: string,
-  data: Data
+  data?: Data
+}
+
+declare interface ChannelCallbacks {
+  successChannel: string;
+  successCallback: (data: Data) => void;
+  failChannel: string;
 }
 
 declare class RTDSClient {
@@ -45,7 +51,7 @@ declare class RTDSClient {
   listen(type: string, callback: Function): void;
   unlisten(type: string, callback: Function): void;
   isLoggedIn(): boolean;
-  try({ channel, data }: ChannelData, { successChannel, successCallback, failChannel }: any): Promise<any>;
+  try({ channel, data }: ChannelData, { successChannel, successCallback, failChannel }: ChannelCallbacks): Promise<any>;
   login({ user, password }: any): Promise<any>;
   logout(): Promise<void>;
 }
