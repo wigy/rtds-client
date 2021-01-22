@@ -199,17 +199,27 @@ class RTDSClient {
       const success = (data) => {
         this.unlisten(failChannel, fail);
         this.unlisten(successChannel, success);
+        if (failChannel !== 'failure') {
+          this.unlisten('failure', fail);
+        }
         successCallback(data);
         resolve(data);
       }
       const fail = (err) => {
         this.unlisten(failChannel, fail);
         this.unlisten(successChannel, success);
+        if (failChannel !== 'failure') {
+          this.unlisten('failure', fail);
+        }
         reject(new Error(err.message));
       }
 
       this.listen(failChannel, fail);
       this.listen(successChannel, success);
+      if (failChannel !== 'failure') {
+        this.listen('failure', fail);
+      }
+
       this.send(channel, data);
     });
   }
